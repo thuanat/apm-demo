@@ -4,8 +4,9 @@ receivers:
       grpc:
       http:
 
-# THÊM PHẦN NÀY: Giúp biến các thuộc tính từ App thành nhãn của Loki
 processors:
+  batch:
+  # Thêm resource processor để chắc chắn dữ liệu có nhãn service.name
   resource:
     attributes:
       - key: service.name
@@ -15,17 +16,19 @@ processors:
 exporters:
   prometheus:
     endpoint: "0.0.0.0:8889"
+
   otlp/tempo:
     endpoint: "tempo:4317"
     tls:
       insecure: true
+
   loki:
     endpoint: "http://loki:3100/loki/api/v1/push"
-    # Cấu hình này cực kỳ quan trọng để Loki tự tạo nhãn từ Resource Attributes
-    resource_to_attributes: true
-    default_labels_enabled:
-      exporter: true
-      job: true
+    # Cấu hình đúng cho phiên bản mới:
+    labels:
+      resource:
+        service.name: "service_name" # Chuyển thuộc tính service.name thành nhãn service_name trong Loki
+
   debug:
     verbosity: detailed
 
@@ -33,12 +36,13 @@ service:
   pipelines:
     metrics:
       receivers: [otlp]
+      processors: [batch, resource]
       exporters: [prometheus]
     traces:
       receivers: [otlp]
-      processors: [resource] # Thêm processor
+      processors: [batch, resource]
       exporters: [otlp/tempo]
     logs:
       receivers: [otlp]
-      processors: [resource] # Thêm processor
+      processors: [batch, resource]
       exporters: [loki, debug]
