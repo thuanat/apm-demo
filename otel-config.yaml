@@ -6,12 +6,15 @@ receivers:
 
 processors:
   batch:
-  # Thêm resource processor để chắc chắn dữ liệu có nhãn service.name
+  # Resource processor giúp thêm metadata vào log
   resource:
     attributes:
       - key: service.name
         action: upsert
         value: "demo-service"
+      - key: loki.resource.labels # Hint cho Loki exporter
+        action: upsert
+        value: "service.name"
 
 exporters:
   prometheus:
@@ -24,10 +27,11 @@ exporters:
 
   loki:
     endpoint: "http://loki:3100/loki/api/v1/push"
-    # Cấu hình đúng cho phiên bản mới:
-    labels:
-      resource:
-        service.name: "service_name" # Chuyển thuộc tính service.name thành nhãn service_name trong Loki
+    # Trong bản 0.90.0, nếu không có cấu hình label phức tạp, 
+    # hãy để mặc định để nó tự map các resource attributes cơ bản.
+    default_labels_enabled:
+      exporter: true
+      job: true
 
   debug:
     verbosity: detailed
