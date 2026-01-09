@@ -1,57 +1,39 @@
 receivers:
   otlp:
     protocols:
-      grpc:
       http:
 
 processors:
   batch:
 
-  # Resource processor: thêm metadata chung
-  resource:
-    attributes:
-      - key: service.name
-        action: upsert
-        value: demo-service
-
-  # Attributes processor: map service.name -> label cho Loki
-  attributes/loki:
-    actions:
-      - key: service
-        from_attribute: service.name
-        action: insert
-
 exporters:
-  prometheus:
-    endpoint: "0.0.0.0:8889"
-
   otlp/tempo:
-    endpoint: "tempo:4317"
+    endpoint: tempo:4317
     tls:
       insecure: true
 
   loki:
-    endpoint: "http://loki:3100/loki/api/v1/push"
-    default_labels_enabled:
-      exporter: true
-      job: true
+    endpoint: http://loki:3100/loki/api/v1/push
+    labels:
+      resource:
+        service.name: service_name
 
-  debug:
-    verbosity: detailed
+  prometheus:
+    endpoint: "0.0.0.0:8889"
 
 service:
   pipelines:
-    metrics:
-      receivers: [otlp]
-      processors: [batch, resource]
-      exporters: [prometheus]
-
     traces:
       receivers: [otlp]
-      processors: [batch, resource]
+      processors: [batch]
       exporters: [otlp/tempo]
+
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [prometheus]
 
     logs:
       receivers: [otlp]
-      processors: [batch, resource, attributes/loki]
-      exporters: [loki, debug]
+      processors: [batch]
+      exporters: [loki]

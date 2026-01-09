@@ -1,84 +1,60 @@
 version: "3.9"
 
-networks:
-  monitoring:
-
 services:
-  # --- 1. OpenTelemetry Collector ---
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.90.0
-    container_name: otel-collector
+    image: otel/opentelemetry-collector-contrib:0.95.0
     command: ["--config=/etc/otel-config.yaml"]
     volumes:
       - ./otel-config.yaml:/etc/otel-config.yaml
     ports:
-      - "4317:4317" # Nhận gRPC từ App
-      - "4318:4318" # Nhận HTTP từ App
-      - "8889:8889" # Prometheus scrape
-    networks:
-      - monitoring
+      - "4318:4318"   # OTLP HTTP
+      - "8889:8889"   # Prometheus exporter
+    depends_on:
+      - tempo
+      - loki
 
-  # --- 2. Backends ---
+  tempo:
+    image: grafana/tempo:2.4.1
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./tempo.yaml:/etc/tempo.yaml
+      - ./tempo-data:/var/tempo
+    ports:
+      - "3200:3200"
+      - "4317:4317"
+      - "4318:4318"
+
+  loki:
+    image: grafana/loki:2.9.4
+    command: ["-config.file=/etc/loki/config.yaml"]
+    volumes:
+      - ./loki-config.yaml:/etc/loki/config.yaml
+      - ./loki-data:/loki
+    ports:
+      - "3100:3100"
+
   prometheus:
-    image: prom/prometheus:latest
-    container_name: prometheus
-    command: ["--config.file=/etc/prometheus/prometheus.yml"]
+    image: prom/prometheus:v2.50.1
     volumes:
       - ./prometheus.yaml:/etc/prometheus/prometheus.yml
     ports:
       - "9090:9090"
-    networks:
-      - monitoring
 
-  loki:
-    image: grafana/loki:latest
-    container_name: loki
-    command: ["-config.file=/etc/loki/local-config.yaml"]
-    volumes:
-      - ./loki-config.yaml:/etc/loki/local-config.yaml
-    ports:
-      - "3100:3100"
-    networks:
-      - monitoring
-
-  tempo:
-    image: grafana/tempo:latest
-    container_name: tempo
-    command: ["-config.file=/etc/tempo.yaml"]
-    volumes:
-      - ./tempo.yaml:/etc/tempo.yaml
-    ports:
-      - "3200:3200"
-    networks:
-      - monitoring
-
-  # --- 3. Visualization ---
   grafana:
-    image: grafana/grafana:latest
-    container_name: grafana
+    image: grafana/grafana:10.3.3
     ports:
       - "3000:3000"
-    environment:
-      GF_AUTH_ANONYMOUS_ENABLED: "true"
-      GF_AUTH_ANONYMOUS_ORG_ROLE: "Admin"
-    networks:
-      - monitoring
+    depends_on:
+      - tempo
+      - loki
+      - prometheus
 
-  # --- 4. Demo Application ---
   demo-app:
-    image: node:18-slim
-    container_name: demo-app
-    working_dir: /usr/src/app
-    volumes:
-      - ./app:/usr/src/app
-    command: >
-      sh -c "npm install &&
-             npm start"
+    build: ./app
     environment:
-      - OTEL_SERVICE_NAME=demo-service
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_SERVICE_NAME: demo-app
     ports:
-      - "8080:8080"
-    networks:
-      - monitoring
+      - "3001:3001"
     depends_on:
       - otel-collector
