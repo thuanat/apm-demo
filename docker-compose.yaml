@@ -1,5 +1,3 @@
-version: "3.8"
-
 networks:
   monitoring:
 
@@ -12,9 +10,9 @@ services:
     volumes:
       - ./otel-config.yaml:/etc/otel-config.yaml
     ports:
-      - "4317:4317" 
-      - "4318:4318" 
-      - "8889:8889" 
+      - "4317:4317" # Nhận gRPC từ App
+      - "4318:4318" # Nhận HTTP từ App
+      - "8889:8889" # Prometheus scrape
     networks:
       - monitoring
 
@@ -45,8 +43,9 @@ services:
       - ./tempo.yaml:/etc/tempo.yaml
     ports:
       - "3200:3200"
-      - "4317:4317"
-    networks: [monitoring]
+      # ĐÃ XÓA PORT 4317 Ở ĐÂY để tránh xung đột với collector
+    networks:
+      - monitoring
 
   # --- 3. Visualization ---
   grafana:
@@ -58,7 +57,7 @@ services:
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
     networks: [monitoring]
 
-  # --- 4. Demo Application (Đã sửa đổi) ---
+  # --- 4. Demo Application ---
   demo-app:
     image: node:18-slim
     container_name: demo-app
@@ -66,15 +65,11 @@ services:
     volumes:
       - ./app:/usr/src/app
     environment:
-      # Tên dịch vụ hiển thị trong Grafana
       - OTEL_SERVICE_NAME=demo-service
-      # Trỏ endpoint về gRPC port của Collector
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
-      # Kích hoạt xuất dữ liệu cho cả 3 loại
       - OTEL_TRACES_EXPORTER=otlp
       - OTEL_METRICS_EXPORTER=otlp
       - OTEL_LOGS_EXPORTER=otlp
-      # Cấu hình quan trọng để Log Injection hoạt động với Pino/Console
       - OTEL_NODE_RESOURCE_DETECTORS=env,host,os,process
       - OTEL_LOG_LEVEL=debug
     command: >
