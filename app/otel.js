@@ -6,7 +6,7 @@ const { SemanticResourceAttributes } = require('@opentelemetry/semantic-conventi
 
 const loggerProvider = new LoggerProvider({
   resource: new Resource({
-    [SemanticResourceAttributes.SERVICE_NAME]: 'demo-app',
+    [SemanticResourceAttributes.SERVICE_NAME]: 'demo-service',
   }),
 });
 
@@ -18,8 +18,6 @@ loggerProvider.addLogRecordProcessor(
   )
 );
 
-const sdk = new NodeSDK({
-  loggerProvider,
-});
+loggerProvider.register();
 
-sdk.start();
+module.exports = loggerProvider.getLogger('demo-logger');
