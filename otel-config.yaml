@@ -22,6 +22,7 @@ exporters:
   loki:
     endpoint: "http://loki:3100/loki/api/v1/push"
     # Cấu hình này cực kỳ quan trọng để Loki tự tạo nhãn từ Resource Attributes
+    resource_to_attributes: true
     default_labels_enabled:
       exporter: true
       job: true
