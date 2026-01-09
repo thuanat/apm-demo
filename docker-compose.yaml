@@ -65,7 +65,7 @@ services:
       - monitoring
 
   # --- 4. Demo Application ---
-    demo-app:
+  demo-app:
     image: node:18-slim
     container_name: demo-app
     working_dir: /usr/src/app
