@@ -1,17 +1,26 @@
-const logger = require('pino')();
+// app/index.js
+const { logs, SeverityNumber } = require('@opentelemetry/api-logs');
 const express = require('express');
+const logger = require('pino')(); // Pino sẽ được OTel tự động hook
+
 const app = express();
+const port = 8080;
 
 app.get('/', (req, res) => {
-  logger.info({ msg: "Truy cập trang chủ", custom_label: "homepage" });
+  logger.info("Yêu cầu tại trang chủ");
   res.send('Hệ thống APM đang hoạt động!');
 });
 
 app.get('/error', (req, res) => {
-  logger.error({ msg: "Lỗi kết nối Database giả lập", db_name: "users_db" });
+  // Ghi log lỗi có cấu trúc
+  logger.error({ 
+    event: "database_error",
+    db_name: "main_db"
+  }, "Lỗi kết nối Database giả lập");
+  
   res.status(500).send('Lỗi hệ thống');
 });
 
-app.listen(8080, () => {
-  logger.info("App demo đang lắng nghe tại http://localhost:8080");
+app.listen(port, () => {
+  console.log(`App demo đang lắng nghe tại http://localhost:${port}`);
 });
