@@ -5,7 +5,7 @@ server:
   grpc_listen_port: 9096
 
 common:
-  instance_addr: 127.0.0.1
+  instance_addr: 0.0.0.0 # PHẢI ĐỔI THÀNH 0.0.0.0 để nhận kết nối từ container khác
   path_prefix: /tmp/loki
   storage:
     filesystem:
@@ -16,18 +16,17 @@ common:
     kvstore:
       store: inmemory
 
-# Phần này cực kỳ quan trọng để fix lỗi của bạn
 limits_config:
-  allow_structured_metadata: false # Tạm thời tắt để tương thích với schema cũ nếu cần
-  reject_old_samples: true
+  allow_structured_metadata: true # Bật lại cái này để OTel gửi được nhiều thông tin hơn
+  reject_old_samples: false # Tạm thời tắt để tránh lỗi lệch múi giờ giữa App và Loki
   reject_old_samples_max_age: 168h
 
 schema_config:
   configs:
     - from: 2024-01-01
-      store: tsdb # Chuyển từ boltdb-shipper sang tsdb
+      store: tsdb
       object_store: filesystem
-      schema: v13 # Nâng cấp lên v13 theo yêu cầu của log lỗi
+      schema: v13
       index:
         prefix: index_
         period: 24h
