@@ -1,21 +1,25 @@
 const { NodeSDK } = require('@opentelemetry/sdk-node');
-const { BatchLogRecordProcessor } = require('@opentelemetry/sdk-logs');
+const { LoggerProvider, BatchLogRecordProcessor } = require('@opentelemetry/sdk-logs');
 const { OTLPLogExporter } = require('@opentelemetry/exporter-logs-otlp-http');
-const { getNodeAutoInstrumentations } = require('@opentelemetry/auto-instrumentations-node');
+const { Resource } = require('@opentelemetry/resources');
+const { SemanticResourceAttributes } = require('@opentelemetry/semantic-conventions');
 
-// Khởi tạo OpenTelemetry SDK cho LOGS
-const sdk = new NodeSDK({
-  logRecordProcessor: new BatchLogRecordProcessor(
-    new OTLPLogExporter({
-      // Nếu app chạy trong Docker network → dùng hostname service
-      // Nếu chạy local → đổi thành http://localhost:4318/v1/logs
-      url: 'http://otel-collector:4318/v1/logs',
-    })
-  ),
-  instrumentations: [getNodeAutoInstrumentations()],
+const loggerProvider = new LoggerProvider({
+  resource: new Resource({
+    [SemanticResourceAttributes.SERVICE_NAME]: 'demo-app',
+  }),
 });
 
-// Start SDK
-sdk.start();
+loggerProvider.addLogRecordProcessor(
+  new BatchLogRecordProcessor(
+    new OTLPLogExporter({
+      url: 'http://otel-collector:4318/v1/logs',
+    })
+  )
+);
 
-console.log('✅ OpenTelemetry Logs SDK started');
+const sdk = new NodeSDK({
+  loggerProvider,
+});
+
+sdk.start();
