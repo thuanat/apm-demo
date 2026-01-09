@@ -1,18 +1,17 @@
+const logger = require('pino')();
 const express = require('express');
-const logger = require('pino')(); // Dùng pino thay cho console
 const app = express();
-const port = 8080;
 
 app.get('/', (req, res) => {
-  logger.info("Truy cập trang chủ thành công"); 
+  logger.info({ msg: "Truy cập trang chủ", custom_label: "homepage" });
   res.send('Hệ thống APM đang hoạt động!');
 });
 
 app.get('/error', (req, res) => {
-  logger.error("Lỗi kết nối Database giả lập");
-  res.status(500).send('Lỗi hệ thống (Giả lập để Demo)');
+  logger.error({ msg: "Lỗi kết nối Database giả lập", db_name: "users_db" });
+  res.status(500).send('Lỗi hệ thống');
 });
 
-app.listen(port, () => {
-  logger.info(`App demo đang lắng nghe tại http://localhost:${port}`);
+app.listen(8080, () => {
+  logger.info("App demo đang lắng nghe tại http://localhost:8080");
 });
