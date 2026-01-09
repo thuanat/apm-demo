@@ -37,6 +37,9 @@ app.listen(port, () => {
   logger.emit({
     severityText: 'INFO',
     body: `App listen on ${port}`,
-    attributes: { event: 'startup' },
+    attributes: {
+      event: 'startup',
+      port,
+    },
   });
 });
