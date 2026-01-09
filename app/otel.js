@@ -1,25 +1,29 @@
-const { LoggerProvider, BatchLogRecordProcessor } = require('@opentelemetry/sdk-logs');
+'use strict';
+
+const { NodeSDK } = require('@opentelemetry/sdk-node');
+const { getNodeAutoInstrumentations } = require('@opentelemetry/auto-instrumentations-node');
+const { OTLPTraceExporter } = require('@opentelemetry/exporter-trace-otlp-http');
 const { OTLPLogExporter } = require('@opentelemetry/exporter-logs-otlp-http');
+const { BatchLogRecordProcessor } = require('@opentelemetry/sdk-logs');
 const { Resource } = require('@opentelemetry/resources');
-const { SemanticResourceAttributes } = require('@opentelemetry/semantic-conventions');
 
-// Tạo LoggerProvider (KHÔNG có register())
-const loggerProvider = new LoggerProvider({
+const sdk = new NodeSDK({
   resource: new Resource({
-    [SemanticResourceAttributes.SERVICE_NAME]: 'demo-service',
+    'service.name': 'demo-service',
   }),
-});
 
-// Gắn exporter OTLP HTTP → Collector
-loggerProvider.addLogRecordProcessor(
-  new BatchLogRecordProcessor(
+  traceExporter: new OTLPTraceExporter({
+    url: 'http://otel-collector:4318/v1/traces',
+  }),
+
+  logRecordProcessor: new BatchLogRecordProcessor(
     new OTLPLogExporter({
       url: 'http://otel-collector:4318/v1/logs',
     })
-  )
-);
+  ),
 
-// Lấy logger
-const logger = loggerProvider.getLogger('demo-logger');
+  instrumentations: [getNodeAutoInstrumentations()],
+});
 
-module.exports = logger;
+sdk.start();
+console.log('✅ OpenTelemetry SDK started');

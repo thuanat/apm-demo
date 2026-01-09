@@ -1,45 +1,40 @@
-const logger = require('./otel');
+require('./otel'); // PHẢI ĐẶT DÒNG ĐẦU TIÊN
+
 const express = require('express');
+const pino = require('pino');
+const pinoHttp = require('pino-http');
+const { trace } = require('@opentelemetry/api');
+
+const logger = pino({
+  formatters: {
+    log(object) {
+      const span = trace.getActiveSpan();
+      if (span) {
+        const ctx = span.spanContext();
+        object.trace_id = ctx.traceId;
+        object.span_id = ctx.spanId;
+      }
+      return object;
+    },
+  },
+});
 
 const app = express();
-const port = 8080;
+app.use(pinoHttp({ logger }));
 
 app.get('/', (req, res) => {
-  logger.emit({
-    severityText: 'INFO',
-    body: 'Request thành công',
-    attributes: {
-      route: '/',
-      status: 200,
-      log_type: 'success',
-    },
-  });
-
+  req.log.info('Request success');
   res.send('OK');
 });
 
 app.get('/error', (req, res) => {
-  logger.emit({
-    severityText: 'ERROR',
-    body: 'Lỗi database giả lập',
-    attributes: {
-      route: '/error',
-      status: 500,
-      log_type: 'error',
-      error_type: 'database',
-    },
-  });
-
+  req.log.error(
+    { error_type: 'database', detail: 'Connection timeout' },
+    'Database error'
+  );
   res.status(500).send('Error');
 });
 
-app.listen(port, () => {
-  logger.emit({
-    severityText: 'INFO',
-    body: `App listen on ${port}`,
-    attributes: {
-      event: 'startup',
-      port,
-    },
-  });
+app.listen(8080, () => {
+  logger.info('App listening on port 8080');
 });

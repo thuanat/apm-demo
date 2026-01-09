@@ -65,20 +65,17 @@ services:
       - monitoring
 
   # --- 4. Demo Application ---
-  demo-app:
+    demo-app:
     image: node:18-slim
     container_name: demo-app
     working_dir: /usr/src/app
     volumes:
       - ./app:/usr/src/app
-    environment:
-      OTEL_SERVICE_NAME: demo-service
-      OTEL_TRACES_EXPORTER: otlp
-      OTEL_METRICS_EXPORTER: otlp
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
-      OTEL_NODE_RESOURCE_DETECTORS: env,host,os,process
     command: >
-      sh -c "npm install && node index.js"
+      sh -c "npm install &&
+             npm start"
+    environment:
+      - OTEL_SERVICE_NAME=demo-service
     ports:
       - "8080:8080"
     networks:
