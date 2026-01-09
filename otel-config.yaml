@@ -1,0 +1,39 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+      http:
+
+processors:
+  batch:
+    timeout: 1s
+  resource:
+    attributes:
+      - key: deployment.environment
+        value: "demo"
+        action: upsert
+
+exporters:
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+  otlp: # Gửi tới Tempo
+    endpoint: "tempo:4317"
+    tls:
+      insecure: true
+  loki: # Gửi tới Loki
+    endpoint: "http://loki:3100/loki/api/v1/push"
+
+service:
+  pipelines:
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [prometheus]
+    traces:
+      receivers: [otlp]
+      processors: [batch, resource]
+      exporters: [otlp]
+    logs:
+      receivers: [otlp]
+      processors: [batch, resource]
+      exporters: [loki]
