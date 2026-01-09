@@ -59,26 +59,23 @@ services:
 
   # --- 4. Demo Application ---
   demo-app:
-    image: node:18-slim
-    container_name: demo-app
-    working_dir: /usr/src/app
-    volumes:
-      - ./app:/usr/src/app
-    environment:
-      - OTEL_SERVICE_NAME=demo-service
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
-      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
-      - OTEL_TRACES_EXPORTER=otlp
-      - OTEL_METRICS_EXPORTER=otlp
-      - OTEL_LOGS_EXPORTER=otlp
-      - OTEL_NODE_RESOURCE_DETECTORS=env,host,os,process
-      - OTEL_LOG_LEVEL=debug
-    command: >
-      sh -c "npm install && 
-             node --require @opentelemetry/auto-instrumentations-node/register index.js"
-    ports:
-      - "8080:8080"
-    networks:
-      - monitoring
-    depends_on:
-      - otel-collector
+  image: node:18-slim
+  container_name: demo-app
+  working_dir: /usr/src/app
+  volumes:
+    - ./app:/usr/src/app
+  environment:
+    - OTEL_SERVICE_NAME=demo-service
+    - OTEL_TRACES_EXPORTER=otlp
+    - OTEL_METRICS_EXPORTER=otlp
+    - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+    - OTEL_NODE_RESOURCE_DETECTORS=env,host,os,process
+  command: >
+    sh -c "npm install &&
+           node index.js"
+  ports:
+    - "8080:8080"
+  networks:
+    - monitoring
+  depends_on:
+    - otel-collector
