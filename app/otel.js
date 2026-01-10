@@ -1,21 +1,34 @@
 'use strict';
 
 const { NodeSDK } = require('@opentelemetry/sdk-node');
-const { getNodeAutoInstrumentations } = require('@opentelemetry/auto-instrumentations-node');
-const { OTLPTraceExporter } = require('@opentelemetry/exporter-trace-otlp-http');
-const { OTLPLogExporter } = require('@opentelemetry/exporter-logs-otlp-http');
-const { LoggerProvider, BatchLogRecordProcessor } = require('@opentelemetry/sdk-logs');
+const { PeriodicExportingMetricReader } =
+  require('@opentelemetry/sdk-metrics');
 
-const traceExporter = new OTLPTraceExporter();
-const logExporter = new OTLPLogExporter();
+const {
+  OTLPMetricExporter,
+} = require('@opentelemetry/exporter-metrics-otlp-http');
 
-const loggerProvider = new LoggerProvider();
-loggerProvider.addLogRecordProcessor(new BatchLogRecordProcessor(logExporter));
-loggerProvider.register();
+const {
+  getNodeAutoInstrumentations,
+} = require('@opentelemetry/auto-instrumentations-node');
 
 const sdk = new NodeSDK({
-  traceExporter,
+  // METRICS
+  metricReader: new PeriodicExportingMetricReader({
+    exporter: new OTLPMetricExporter({
+      url: 'http://otel-collector:4318/v1/metrics',
+    }),
+    exportIntervalMillis: 5000,
+  }),
+
+  // TRACE (auto)
   instrumentations: [getNodeAutoInstrumentations()],
 });
 
-sdk.start();
+sdk.start()
+  .then(() => {
+    console.log('✅ OpenTelemetry started (trace + metrics)');
+  })
+  .catch((err) => {
+    console.error('❌ OpenTelemetry failed to start', err);
+  });

@@ -8,8 +8,40 @@ distributor:
         grpc:
         http:
 
+ingester:
+  trace_idle_period: 10s
+  max_block_duration: 5m
+
 storage:
   trace:
     backend: local
     local:
       path: /var/tempo
+    wal:
+      path: /var/tempo/wal
+
+compactor:
+  compaction:
+    block_retention: 72h
+
+querier:
+  frontend_worker:
+    frontend_address: tempo:9095
+
+search_enabled: true
+
+metrics_generator:
+  storage:
+    path: /var/tempo/metrics
+  traces_storage:
+    path: /var/tempo/traces
+  registry:
+    external_labels:
+      source: tempo
+  processor:
+    service_graphs:
+      enabled: true
+    span_metrics:
+      enabled: true
+  prometheus:
+    endpoint: 0.0.0.0:8889

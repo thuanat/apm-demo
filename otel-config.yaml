@@ -2,22 +2,32 @@ receivers:
   otlp:
     protocols:
       http:
+      grpc:
 
 processors:
   batch:
 
+  resource:
+    attributes:
+      - action: insert
+        key: loki.resource.labels
+        value: service.name
+
 exporters:
+  # ===== TRACE → TEMPO =====
   otlp/tempo:
     endpoint: tempo:4317
     tls:
       insecure: true
 
+  # ===== LOG → LOKI =====
   loki:
     endpoint: http://loki:3100/loki/api/v1/push
-    labels:
-      resource:
-        service.name: service_name
+    default_labels_enabled:
+      service_name: true
+      severity: true
 
+  # ===== METRICS → PROMETHEUS =====
   prometheus:
     endpoint: "0.0.0.0:8889"
 
@@ -35,5 +45,5 @@ service:
 
     logs:
       receivers: [otlp]
-      processors: [batch]
+      processors: [resource, batch]
       exporters: [loki]
