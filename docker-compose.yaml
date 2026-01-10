@@ -47,10 +47,19 @@ services:
       - prometheus
 
   demo-app:
-    build: ./app
+    image: node:18-alpine
+    container_name: demo-app
+    working_dir: /usr/src/app
+    volumes:
+      - ./app:/usr/src/app
     environment:
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
       OTEL_SERVICE_NAME: demo-app
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_LOGS_EXPORTER: otlp
+    command: >
+      sh -c "npm install &&
+             node index.js"
     ports:
       - "3001:8080"
     depends_on:
